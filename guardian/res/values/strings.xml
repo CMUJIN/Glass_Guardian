@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">guardian</string>
+    <string name="action_settings">Settings</string>
+    <string name="glass_voice_trigger">Proctect Me</string>
+    <string name="menu_cancel">Cancel</string>
+    <string name="title_activity_sensor">SensorActivity</string>
+    <string name="menu_stop">Stop Guardian</string>
+    <string name="menu_send_alert">Send Alert!</string>
+    <string name="title_activity_alert">AlertActivity</string>
+    <string name="alert_instruction">CLICK to cancel, SWIPE to send immediately</string>
+    <string name="alert_head">Alert is sending in 10 seconds</string>
+    <string name="menu_cancel_alert">Cancel Alert!</string>
+
+</resources>
