@@ -30,9 +30,9 @@ import android.view.SurfaceView;
 import com.jinhs.common.ActivityRequestCodeEnum;
 
 public class SensorActivity extends Activity implements SensorEventListener{
-	private Camera mCamera;
-	private MediaRecorder mRecorder;
-	private String mFileName;
+	private Camera camera;
+	private MediaRecorder recorder;
+	private String fileName;
 	
 	private RecorderAsyncTask recorderTask;
 	
@@ -50,15 +50,14 @@ public class SensorActivity extends Activity implements SensorEventListener{
 		setContentView(R.layout.activity_sensor);
 		
 		recorderTask = new RecorderAsyncTask();
-		mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
-        mFileName += "/guardian_audio.3gp";
+		fileName = Environment.getExternalStorageDirectory().getAbsolutePath();
+        fileName += "/guardian_audio.3gp";
         
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 		accelerometer = sensorManager
 				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		sensorManager.registerListener(this, accelerometer,
 				SensorManager.SENSOR_DELAY_NORMAL);
-		isInitialized = false;
 	}
 
 	@Override
@@ -71,21 +70,27 @@ public class SensorActivity extends Activity implements SensorEventListener{
 	@Override
 	protected void onResume() {
 		super.onResume(); 
+		isInitialized = false;
 		stopRecording = false;
-		recorderTask.execute();
+		if(recorderTask.getStatus()!=AsyncTask.Status.RUNNING)
+			recorderTask.execute();
+		else{
+			recorderTask.cancel(false);
+			finish();
+		}
 	}
 
 	@Override
 	protected void onPause() {
 		stopRecording = true;
 		recorderTask.cancel(true);
-		if (mCamera != null) {
-			mCamera.release();
-			mCamera = null;
+		if (camera != null) {
+			camera.release();
+			camera = null;
 		}
-		if (mRecorder != null) {
-			mRecorder.release();
-			mRecorder = null;
+		if (recorder != null) {
+			recorder.release();
+			recorder = null;
 		}
 		super.onPause();
 	}
@@ -133,12 +138,12 @@ public class SensorActivity extends Activity implements SensorEventListener{
 	}
 	
 	private void takePicture() {
-		if (mCamera != null) {
-			mCamera.release();
-			mCamera = null;
+		if (camera != null) {
+			camera.release();
+			camera = null;
 		}
 		
-		mCamera = Camera.open(getCameraId());
+		camera = Camera.open(getCameraId());
 		try {
 			// init surface view
 			SurfaceView surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
@@ -147,40 +152,40 @@ public class SensorActivity extends Activity implements SensorEventListener{
 			sHolder.setSizeFromLayout();
 			Log.i("camera", "start");
 			// set camera parameters
-			Parameters parameters = mCamera.getParameters();
-			mCamera.setParameters(parameters);
-			mCamera.setPreviewDisplay(sHolder);
-			mCamera.startPreview();
-			mCamera.takePicture(shutterCallback, null, jpgCallback);
+			Parameters parameters = camera.getParameters();
+			camera.setParameters(parameters);
+			camera.setPreviewDisplay(sHolder);
+			camera.startPreview();
+			camera.takePicture(shutterCallback, null, jpgCallback);
 			Log.i("picture", "taken");
 			
 		} catch (IOException e) {
-			mCamera.release();
-			mCamera=null;
+			camera.release();
+			camera=null;
 		}
 	}
 	
 	private void startRecording() {
 		Log.d("audio","start recording");
-        mRecorder = new MediaRecorder();
-        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        mRecorder.setOutputFile(mFileName);
-        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        recorder = new MediaRecorder();
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        recorder.setOutputFile(fileName);
+        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
 
         try {
-            mRecorder.prepare();
+            recorder.prepare();
         } catch (IOException e) {
             Log.e("audio", "prepare() failed");
         }
 
-        mRecorder.start();
+        recorder.start();
     }
 	
 	private void stopRecording() {
-        mRecorder.stop();
-        mRecorder.release();
-        mRecorder = null;
+        recorder.stop();
+        recorder.release();
+        recorder = null;
         Log.d("audio","stop recording");
     }
 	
@@ -192,7 +197,7 @@ public class SensorActivity extends Activity implements SensorEventListener{
 			Log.d("CAMERA", "onPictureTaken - jpg");
 			camera.stopPreview();
 			camera.release();
-			mCamera = null;
+			camera = null;
 		}
 	};
 
@@ -203,7 +208,7 @@ public class SensorActivity extends Activity implements SensorEventListener{
 			Log.d("CAMERA", "onPictureTaken - raw");
 			camera.stopPreview();
 			camera.release();
-			mCamera = null;
+			camera = null;
 		}
 	};
 
@@ -211,7 +216,7 @@ public class SensorActivity extends Activity implements SensorEventListener{
 
 		@Override
 		public void onShutter() {
-			mCamera = null;
+			camera = null;
 			Log.i("CAMERA", "onShutter'd");
 		}
 

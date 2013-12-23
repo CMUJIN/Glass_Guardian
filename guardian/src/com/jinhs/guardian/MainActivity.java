@@ -49,13 +49,14 @@ public class MainActivity extends Activity implements SensorEventListener{
 				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		sensorManager.registerListener(this, accelerometer,
 				SensorManager.SENSOR_DELAY_NORMAL);
-		isInitialized = false;
+		
 	}
 	
 	@Override
 	protected void onResume() {
 		Log.d("onResume()","start");
 		super.onResume();
+		isInitialized = false;
 		stopRecording = false;
 		Card cardProtectMode = new Card(this);
 		cardProtectMode.setText("Protect Mode On");
