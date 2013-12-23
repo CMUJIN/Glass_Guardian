@@ -10,6 +10,10 @@ import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -23,12 +27,22 @@ import android.view.Menu;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-public class SensorActivity extends Activity {
+import com.jinhs.common.ActivityRequestCodeEnum;
+
+public class SensorActivity extends Activity implements SensorEventListener{
 	private Camera mCamera;
 	private MediaRecorder mRecorder;
 	private String mFileName;
 	
 	private RecorderAsyncTask recorderTask;
+	
+	private static boolean stopRecording;
+	
+	private boolean isInitialized;
+	private SensorManager sensorManager;
+	private Sensor accelerometer;
+	private final float NOISE = (float) 12.0;
+	private float lastX, lastY, lastZ;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +52,13 @@ public class SensorActivity extends Activity {
 		recorderTask = new RecorderAsyncTask();
 		mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
         mFileName += "/guardian_audio.3gp";
+        
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		accelerometer = sensorManager
+				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+		sensorManager.registerListener(this, accelerometer,
+				SensorManager.SENSOR_DELAY_NORMAL);
+		isInitialized = false;
 	}
 
 	@Override
@@ -50,11 +71,13 @@ public class SensorActivity extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume(); 
+		stopRecording = false;
 		recorderTask.execute();
 	}
 
 	@Override
 	protected void onPause() {
+		stopRecording = true;
 		recorderTask.cancel(true);
 		if (mCamera != null) {
 			mCamera.release();
@@ -75,6 +98,38 @@ public class SensorActivity extends Activity {
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
+	}
+	
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		float x = event.values[0];
+		float y = event.values[1];
+		float z = event.values[2];
+		if (!isInitialized) {
+			lastX = x;
+			lastY = y;
+			lastZ = z;
+			isInitialized = true;
+		} else {
+			float deltaX = Math.abs(lastX - x);
+			float deltaY = Math.abs(lastY - y);
+			float deltaZ = Math.abs(lastZ - z);
+			if (deltaX < NOISE)
+				deltaX = (float) 0.0;
+			if (deltaY < NOISE)
+				deltaY = (float) 0.0;
+			if (deltaZ < NOISE)
+				deltaZ = (float) 0.0;
+			lastX = x;
+			lastY = y;
+			lastZ = z;
+			if (deltaX + deltaY + deltaX > 0&&!stopRecording) {
+				stopRecording = true;
+            	Intent cameraIntent = new Intent(getBaseContext(), AlertActivity.class);
+				startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
+			} 
+		}
 	}
 	
 	private void takePicture() {
@@ -228,6 +283,13 @@ public class SensorActivity extends Activity {
 			finish();
 		}
 	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
 
 class LocationUpdateListener implements LocationListener {

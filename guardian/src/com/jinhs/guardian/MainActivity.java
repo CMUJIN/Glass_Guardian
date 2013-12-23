@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -19,25 +20,36 @@ import android.view.View;
 import com.google.android.glass.app.Card;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
+import com.jinhs.common.ActivityRequestCodeEnum;
 
 public class MainActivity extends Activity implements SensorEventListener{
-	private static final int SENSOR_ACTIVITY_REQUEST_CODE = 1;
-	private static final int ALERT_ACTIVITY_REQUEST_CODE = 2;
 	
-	private GestureDetector mGestureDetector;
+	private GestureDetector gestureDetector;
 	
 	private static boolean stopRecording;
 	private Timer recordTimer;
+	
+	private boolean isInitialized;
+	private SensorManager sensorManager;
+	private Sensor accelerometer;
+	private final float NOISE = (float) 12.0;
+	private float lastX, lastY, lastZ;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		Log.d("onCreate()","start");
 		super.onCreate(savedInstanceState);
 		
-		mGestureDetector = createGestureDetector(this);
-		stopRecording = false;
+		gestureDetector = createGestureDetector(this);
 		recordTimer = new Timer();
 		recordTimer.schedule(new DataRecordTimerTask(), 5000, 30*1000);
+		
+		sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		accelerometer = sensorManager
+				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+		sensorManager.registerListener(this, accelerometer,
+				SensorManager.SENSOR_DELAY_NORMAL);
+		isInitialized = false;
 	}
 	
 	@Override
@@ -94,7 +106,7 @@ public class MainActivity extends Activity implements SensorEventListener{
             case R.id.menu_send_alert:
             	stopRecording = true;
             	Intent cameraIntent = new Intent(getBaseContext(), AlertActivity.class);
-				startActivityForResult(cameraIntent, ALERT_ACTIVITY_REQUEST_CODE);
+				startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -107,8 +119,8 @@ public class MainActivity extends Activity implements SensorEventListener{
 	 */
 	@Override
 	public boolean onGenericMotionEvent(MotionEvent event) {
-		if (mGestureDetector != null) {
-            return mGestureDetector.onMotionEvent(event);
+		if (gestureDetector != null) {
+            return gestureDetector.onMotionEvent(event);
         }
         return false;
 	}
@@ -119,11 +131,38 @@ public class MainActivity extends Activity implements SensorEventListener{
 		// TODO Auto-generated method stub
 		
 	}
+	
 	//accelerometer
 	@Override
-	public void onSensorChanged(SensorEvent arg0) {
-		// TODO Auto-generated method stub
-		
+	public void onSensorChanged(SensorEvent event) {
+		float x = event.values[0];
+		float y = event.values[1];
+		float z = event.values[2];
+		if (!isInitialized) {
+			lastX = x;
+			lastY = y;
+			lastZ = z;
+			isInitialized = true;
+		} else {
+			float deltaX = Math.abs(lastX - x);
+			float deltaY = Math.abs(lastY - y);
+			float deltaZ = Math.abs(lastZ - z);
+			if (deltaX < NOISE)
+				deltaX = (float) 0.0;
+			if (deltaY < NOISE)
+				deltaY = (float) 0.0;
+			if (deltaZ < NOISE)
+				deltaZ = (float) 0.0;
+			lastX = x;
+			lastY = y;
+			lastZ = z;
+			if (deltaX + deltaY + deltaX > 0&&!stopRecording) {
+				stopRecording = true;
+            	Intent cameraIntent = new Intent(getBaseContext(), AlertActivity.class);
+				startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
+			} 
+		}
+
 	}
 	
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -169,7 +208,7 @@ public class MainActivity extends Activity implements SensorEventListener{
 		  public void run() {
 			  if(!stopRecording){
 					Intent cameraIntent = new Intent(getBaseContext(), SensorActivity.class);
-					startActivityForResult(cameraIntent, SENSOR_ACTIVITY_REQUEST_CODE);
+					startActivityForResult(cameraIntent, ActivityRequestCodeEnum.SENSOR_ACTIVITY_REQUEST_CODE.getValue());
 				}
 		  }
 	}
