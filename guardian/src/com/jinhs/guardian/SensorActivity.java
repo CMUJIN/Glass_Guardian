@@ -1,6 +1,9 @@
 package com.jinhs.guardian;
 
+import java.io.File;
 import java.io.IOException;
+
+import org.apache.http.client.ClientProtocolException;
 
 import android.app.Activity;
 import android.content.Context;
@@ -26,34 +29,40 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.Toast;
 
 import com.jinhs.common.ActivityRequestCodeEnum;
+import com.jinhs.common.ApplicationConstant;
+import com.jinhs.helper.AccountInfoHelper;
+import com.jinhs.helper.FileReadingHelper;
+import com.jinhs.rest.DataBO;
+import com.jinhs.rest.RestClient;
+import com.jinhs.rest.RestIntentService;
 
-public class SensorActivity extends Activity implements SensorEventListener{
+public class SensorActivity extends Activity implements SensorEventListener {
 	private Camera camera;
 	private MediaRecorder recorder;
 	private String fileName;
-	
-	private RecorderAsyncTask recorderTask;
-	
+
 	private static boolean stopRecording;
-	
+
 	private boolean isInitialized;
 	private SensorManager sensorManager;
 	private Sensor accelerometer;
-	private final float NOISE = (float) 12.0;
 	private float lastX, lastY, lastZ;
-	
+
+	private static DataBO trackingData;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		Log.d("SensorActivity", "onCreate()");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_sensor);
-		
-		recorderTask = new RecorderAsyncTask();
+
 		fileName = Environment.getExternalStorageDirectory().getAbsolutePath();
-        fileName += "/guardian_audio.3gp";
-        
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+		fileName += "/" + ApplicationConstant.AUDIO_FILE_NAME;
+
+		sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 		accelerometer = sensorManager
 				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		sensorManager.registerListener(this, accelerometer,
@@ -69,21 +78,20 @@ public class SensorActivity extends Activity implements SensorEventListener{
 
 	@Override
 	protected void onResume() {
-		super.onResume(); 
+		Log.d("SensorActivity", "onResume()");
+		super.onResume();
 		isInitialized = false;
 		stopRecording = false;
-		if(recorderTask.getStatus()!=AsyncTask.Status.RUNNING)
-			recorderTask.execute();
-		else{
-			recorderTask.cancel(false);
-			finish();
-		}
+		trackingData = new DataBO();
+		trackingData.setEmail(AccountInfoHelper.getEmail(getBaseContext()));
+		new RecorderAsyncTask().execute();
 	}
 
 	@Override
 	protected void onPause() {
+		Log.d("SensorActivity", "onPause()");
 		stopRecording = true;
-		recorderTask.cancel(true);
+		// recorderTask.cancel(false);
 		if (camera != null) {
 			camera.release();
 			camera = null;
@@ -97,17 +105,19 @@ public class SensorActivity extends Activity implements SensorEventListener{
 
 	@Override
 	protected void onStop() {
+		Log.d("SensorActivity", "onStop()");
 		super.onStop();
 	}
 
 	@Override
 	protected void onDestroy() {
+		Log.d("SensorActivity", "onDestroy()");
 		super.onDestroy();
 	}
-	
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
+		float noisy = ApplicationConstant.ACCELEROMETER_NOISY;
 		float x = event.values[0];
 		float y = event.values[1];
 		float z = event.values[2];
@@ -120,29 +130,32 @@ public class SensorActivity extends Activity implements SensorEventListener{
 			float deltaX = Math.abs(lastX - x);
 			float deltaY = Math.abs(lastY - y);
 			float deltaZ = Math.abs(lastZ - z);
-			if (deltaX < NOISE)
+			if (deltaX < noisy)
 				deltaX = (float) 0.0;
-			if (deltaY < NOISE)
+			if (deltaY < noisy)
 				deltaY = (float) 0.0;
-			if (deltaZ < NOISE)
+			if (deltaZ < noisy)
 				deltaZ = (float) 0.0;
 			lastX = x;
 			lastY = y;
 			lastZ = z;
-			if (deltaX + deltaY + deltaX > 0&&!stopRecording) {
+			if (deltaX + deltaY + deltaX > 0 && !stopRecording) {
 				stopRecording = true;
-            	Intent cameraIntent = new Intent(getBaseContext(), AlertActivity.class);
-				startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
-			} 
+				Intent cameraIntent = new Intent(getBaseContext(),
+						AlertActivity.class);
+				startActivityForResult(cameraIntent,
+						ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE
+								.getValue());
+			}
 		}
 	}
-	
+
 	private void takePicture() {
 		if (camera != null) {
 			camera.release();
 			camera = null;
 		}
-		
+
 		camera = Camera.open(getCameraId());
 		try {
 			// init surface view
@@ -158,46 +171,54 @@ public class SensorActivity extends Activity implements SensorEventListener{
 			camera.startPreview();
 			camera.takePicture(shutterCallback, null, jpgCallback);
 			Log.i("picture", "taken");
-			
+
 		} catch (IOException e) {
 			camera.release();
-			camera=null;
+			camera = null;
 		}
 	}
-	
+
 	private void startRecording() {
-		Log.d("audio","start recording");
-        recorder = new MediaRecorder();
-        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        recorder.setOutputFile(fileName);
-        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+		Log.d("audio", "start recording");
+		recorder = new MediaRecorder();
+		recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+		recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+		recorder.setOutputFile(fileName);
+		recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
 
-        try {
-            recorder.prepare();
-        } catch (IOException e) {
-            Log.e("audio", "prepare() failed");
-        }
+		try {
+			recorder.prepare();
+		} catch (IOException e) {
+			Log.e("audio", "prepare() failed");
+		}
 
-        recorder.start();
-    }
-	
+		recorder.start();
+	}
+
 	private void stopRecording() {
-        recorder.stop();
-        recorder.release();
-        recorder = null;
-        Log.d("audio","stop recording");
-    }
-	
-	
+		if(recorder!=null){
+			recorder.stop();
+			recorder.release();
+			recorder = null;
+		}
+		Log.d("audio", "stop recording");
+		Log.d("audio file path", "" + fileName);
+	}
+
 	PictureCallback jpgCallback = new PictureCallback() {
 
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera) {
-			Log.d("CAMERA", "onPictureTaken - jpg");
+
+			long b = data.length;
+			Log.d("CAMERA", "onPictureTaken - jpg" + b);
+			trackingData.setImage(data);
 			camera.stopPreview();
 			camera.release();
 			camera = null;
+			Log.d(""+trackingData.getImage().length,"tracking data image");
+			Thread t = new Thread(new MyRunnable(trackingData));
+			t.start();
 		}
 	};
 
@@ -231,7 +252,7 @@ public class SensorActivity extends Activity implements SensorEventListener{
 		}
 		return -1; // No camera found
 	}
-	
+
 	private Location getUserLocation() {
 		LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
@@ -240,21 +261,30 @@ public class SensorActivity extends Activity implements SensorEventListener{
 		criteria.setAltitudeRequired(true);
 
 		String provider = locationManager.getBestProvider(criteria, true);
-		locationManager.requestLocationUpdates(provider, 30*1000, 100, new LocationUpdateListener());
+		locationManager.requestLocationUpdates(provider, 30 * 1000, 100,
+				new LocationUpdateListener());
 		Log.d("provider", provider);
 		Location location = locationManager.getLastKnownLocation(provider);
-		if(location!=null)
-			Log.d("coordinate", location.getLatitude()+","+location.getLongitude());
+		if (location != null)
+			Log.d("coordinate",
+					location.getLatitude() + "," + location.getLongitude());
+		else
+			Log.d("location", "null");
 		return location;
 	}
-	
+
 	private class RecorderAsyncTask extends AsyncTask<Void, Void, String> {
 
 		@Override
 		protected void onPreExecute() {
 			startRecording();
-			getUserLocation();
+			Location location = getUserLocation();
+			if (location != null) {
+				trackingData.setLatitude(location.getLatitude());
+				trackingData.setLongtitude(location.getLongitude());
+			}
 			try {
+				Log.d("wait", "5s");
 				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
@@ -264,38 +294,125 @@ public class SensorActivity extends Activity implements SensorEventListener{
 
 		@Override
 		protected String doInBackground(Void... arg0) {
-			
+			Log.d("backgroud", "record task");
+			stopRecording();
 			takePicture();
+			
 			return null;
 		}
 
 		@Override
 		protected void onPostExecute(String result) {
 			super.onPostExecute(result);
-
 			try {
 				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			//new TrackingDataUploadTask().execute();
 			
-			stopRecording();
-			
+
 			Intent returnIntent = new Intent();
-			returnIntent.putExtra("status","suc");
-			setResult(RESULT_OK,returnIntent); 
+			returnIntent.putExtra("status", "suc");
+			setResult(RESULT_OK, returnIntent);
 			finish();
+		}
+	}
+
+	private void startTrackingService() {
+		Log.d("start", "rest intent service");
+		if (trackingData.getImage() == null)
+			Log.d("null", "image in tracking data");
+		File audioFile = new File(fileName);
+		if (audioFile.exists()) {
+			trackingData.setAudio(FileReadingHelper
+					.convertToByteArray(fileName));
+		}
+		try {
+			new RestClient().sendTrackingInfo(trackingData);
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		/*
+		 * Intent intent = new Intent(getBaseContext(),
+		 * RestIntentService.class); intent.putExtra("data", trackingData);
+		 */
+		// startService(intent);
+	}
+
+	private class TrackingDataUploadTask extends AsyncTask<Void, Void, String> {
+
+		@Override
+		protected void onPreExecute() {
+			Log.d("TrackingDataUploadTask", "start");
+			File audioFile = new File(fileName);
+			if (audioFile.exists()) {
+				trackingData.setAudio(FileReadingHelper
+						.convertToByteArray(fileName));
+			}
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+			}
+		}
+
+		@Override
+		protected String doInBackground(Void... arg0) {
+			try {
+				if (trackingData.getImage() == null)
+					Log.d("null", "image in tracking data");
+				new RestClient().sendTrackingInfo(trackingData);
+			} catch (ClientProtocolException e) {
+				Log.d("REST failed", e.getMessage());
+				Toast.makeText(getBaseContext(), "Network disconnected",
+						Toast.LENGTH_LONG).show();
+			} catch (IOException e) {
+				Log.d("REST failed", e.getMessage());
+				Toast.makeText(getBaseContext(), "Network disconnected",
+						Toast.LENGTH_LONG).show();
+			}
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(String result) {
+			super.onPostExecute(result);
 		}
 	}
 
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 }
+
+class MyRunnable implements Runnable {
+    private final DataBO trackingData;
+    public MyRunnable(DataBO trackingData) {
+       this.trackingData = trackingData;
+    }
+
+    public void run() {
+    	if (trackingData.getImage() == null)
+			Log.d("null", "image in tracking data");
+		try {
+			new RestClient().sendTrackingInfo(trackingData);
+		} catch (ClientProtocolException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+ }
 
 class LocationUpdateListener implements LocationListener {
 

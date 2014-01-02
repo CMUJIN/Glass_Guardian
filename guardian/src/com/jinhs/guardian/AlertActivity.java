@@ -1,7 +1,13 @@
 package com.jinhs.guardian;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.apache.http.client.ClientProtocolException;
+
 import android.app.Activity;
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
@@ -13,6 +19,9 @@ import android.widget.Toast;
 
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
+import com.jinhs.helper.AccountInfoHelper;
+import com.jinhs.helper.FileReadingHelper;
+import com.jinhs.rest.RestClient;
 
 public class AlertActivity extends Activity {
 	private GestureDetector mGestureDetector;
@@ -98,12 +107,6 @@ public class AlertActivity extends Activity {
         return false;
 	}
 	
-	private void sendAlert(){
-		Log.d("alert","sent");
-		Toast.makeText(getBaseContext(), "alert is sent", Toast.LENGTH_LONG).show();
-		return;
-	}
-	
 	private GestureDetector createGestureDetector(Context context) {
 		GestureDetector gestureDetector = new GestureDetector(context);
 		gestureDetector.setBaseListener(new gestureListener());
@@ -120,11 +123,11 @@ public class AlertActivity extends Activity {
             } else if (gesture == Gesture.TWO_TAP) {
                 return true;
             } else if (gesture == Gesture.SWIPE_RIGHT) {
-            	sendAlert();
+            	new AlertSendingTask().execute();
             	finish();
                 return true;
             } else if (gesture == Gesture.SWIPE_LEFT) {
-                sendAlert();
+            	new AlertSendingTask().execute();
                 finish();
                 return true;
             }
@@ -132,4 +135,32 @@ public class AlertActivity extends Activity {
 		}
 	}
 
+	private class AlertSendingTask extends AsyncTask<Void, Void, String> {
+
+		@Override
+		protected void onPreExecute() {
+			
+		}
+
+		@Override
+		protected String doInBackground(Void... arg0) {
+			Log.d("alert","sent");
+			try {
+				new RestClient().sendAlert(AccountInfoHelper.getEmail(getBaseContext()));
+			} catch (ClientProtocolException e) {
+				Log.d("ClientProtocolException","alert send e:"+e.getMessage());
+				//return "Alert send failed, check your network connection";
+			} catch (IOException e) {
+				Log.d("IOException","alert send e:"+e.getMessage());
+				//return "Alert send failed, check your network connection";
+			}
+			return "alert is sent";
+		}
+
+		@Override
+		protected void onPostExecute(String result) {
+			super.onPostExecute(result);
+			Toast.makeText(getBaseContext(), result, Toast.LENGTH_LONG).show();
+		}
+	}
 }

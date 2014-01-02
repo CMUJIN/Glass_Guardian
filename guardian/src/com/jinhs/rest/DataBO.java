@@ -1,6 +1,9 @@
 package com.jinhs.rest;
 
-public class DataBO {
+import java.io.Serializable;
+
+@SuppressWarnings("serial")
+public class DataBO implements Serializable{
 	private String email;
 	
 	private byte[] image;

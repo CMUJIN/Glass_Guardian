@@ -10,6 +10,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 
+import android.util.Log;
+
 import com.google.gson.Gson;
 
 public class RestClient {
@@ -19,6 +21,7 @@ public class RestClient {
 
 	public void sendTrackingInfo(DataBO data) throws ClientProtocolException,
 			IOException {
+		Log.d("rest","upload Tracking data");
 		HttpClient httpClient = new DefaultHttpClient();
 		HttpPost request = new HttpPost(trackUrl);
 		StringEntity params = new StringEntity(new Gson().toJson(data));
@@ -26,8 +29,9 @@ public class RestClient {
 		httpClient.execute(request);
 	}
 
-	public void sendAlert() throws ClientProtocolException, IOException {
-		URL url = new URL(alertUrl);
+	public void sendAlert(String userId) throws ClientProtocolException, IOException {
+		Log.d("rest","send alert");
+		URL url = new URL(alertUrl+"?userId="+userId);
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setRequestMethod("GET");
 		con.getInputStream();

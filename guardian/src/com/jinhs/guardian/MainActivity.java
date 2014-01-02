@@ -21,6 +21,7 @@ import com.google.android.glass.app.Card;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
 import com.jinhs.common.ActivityRequestCodeEnum;
+import com.jinhs.common.ApplicationConstant;
 
 public class MainActivity extends Activity implements SensorEventListener{
 	
@@ -32,12 +33,11 @@ public class MainActivity extends Activity implements SensorEventListener{
 	private boolean isInitialized;
 	private SensorManager sensorManager;
 	private Sensor accelerometer;
-	private final float NOISE = (float) 12.0;
 	private float lastX, lastY, lastZ;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		Log.d("onCreate()","start");
+		Log.d("MainActivity","onCreate()");
 		super.onCreate(savedInstanceState);
 		
 		gestureDetector = createGestureDetector(this);
@@ -54,7 +54,7 @@ public class MainActivity extends Activity implements SensorEventListener{
 	
 	@Override
 	protected void onResume() {
-		Log.d("onResume()","start");
+		Log.d("MainActivity","onResume()");
 		super.onResume();
 		isInitialized = false;
 		stopRecording = false;
@@ -66,27 +66,27 @@ public class MainActivity extends Activity implements SensorEventListener{
 
 	@Override
 	protected void onPause() {
-		Log.d("onPause()","start");
+		Log.d("MainActivity","onPause()");
 		stopRecording = true;
 		super.onPause();
 	}
 
 	@Override
 	protected void onStop() {
-		Log.d("onStop()","start");
+		Log.d("MainActivity","onStop()");
 		super.onStop();
 	}
 
 	@Override
 	protected void onDestroy() {
-		Log.d("onDestroy()","start");
+		Log.d("MainActivity","onDestroy()");
 		super.onDestroy();
 		recordTimer.cancel();
 	}
 	
 	@Override
 	public void onBackPressed() {
-		Log.d("onBackPressed()","start");
+		Log.d("MainActivity","onBackPressed()");
 	}
 	
 	@Override
@@ -136,6 +136,7 @@ public class MainActivity extends Activity implements SensorEventListener{
 	//accelerometer
 	@Override
 	public void onSensorChanged(SensorEvent event) {
+		float noisy = ApplicationConstant.ACCELEROMETER_NOISY;
 		float x = event.values[0];
 		float y = event.values[1];
 		float z = event.values[2];
@@ -148,11 +149,11 @@ public class MainActivity extends Activity implements SensorEventListener{
 			float deltaX = Math.abs(lastX - x);
 			float deltaY = Math.abs(lastY - y);
 			float deltaZ = Math.abs(lastZ - z);
-			if (deltaX < NOISE)
+			if (deltaX < noisy)
 				deltaX = (float) 0.0;
-			if (deltaY < NOISE)
+			if (deltaY < noisy)
 				deltaY = (float) 0.0;
-			if (deltaZ < NOISE)
+			if (deltaZ < noisy)
 				deltaZ = (float) 0.0;
 			lastX = x;
 			lastY = y;
