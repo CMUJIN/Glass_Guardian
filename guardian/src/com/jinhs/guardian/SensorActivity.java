@@ -1,6 +1,5 @@
 package com.jinhs.guardian;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.http.client.ClientProtocolException;
@@ -29,15 +28,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.Toast;
 
 import com.jinhs.common.ActivityRequestCodeEnum;
 import com.jinhs.common.ApplicationConstant;
 import com.jinhs.helper.AccountInfoHelper;
-import com.jinhs.helper.FileReadingHelper;
 import com.jinhs.rest.DataBO;
 import com.jinhs.rest.RestClient;
-import com.jinhs.rest.RestIntentService;
 
 public class SensorActivity extends Activity implements SensorEventListener {
 	private Camera camera;
@@ -150,6 +146,7 @@ public class SensorActivity extends Activity implements SensorEventListener {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	private void takePicture() {
 		if (camera != null) {
 			camera.release();
@@ -317,71 +314,6 @@ public class SensorActivity extends Activity implements SensorEventListener {
 			returnIntent.putExtra("status", "suc");
 			setResult(RESULT_OK, returnIntent);
 			finish();
-		}
-	}
-
-	private void startTrackingService() {
-		Log.d("start", "rest intent service");
-		if (trackingData.getImage() == null)
-			Log.d("null", "image in tracking data");
-		File audioFile = new File(fileName);
-		if (audioFile.exists()) {
-			trackingData.setAudio(FileReadingHelper
-					.convertToByteArray(fileName));
-		}
-		try {
-			new RestClient().sendTrackingInfo(trackingData);
-		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		/*
-		 * Intent intent = new Intent(getBaseContext(),
-		 * RestIntentService.class); intent.putExtra("data", trackingData);
-		 */
-		// startService(intent);
-	}
-
-	private class TrackingDataUploadTask extends AsyncTask<Void, Void, String> {
-
-		@Override
-		protected void onPreExecute() {
-			Log.d("TrackingDataUploadTask", "start");
-			File audioFile = new File(fileName);
-			if (audioFile.exists()) {
-				trackingData.setAudio(FileReadingHelper
-						.convertToByteArray(fileName));
-			}
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-			}
-		}
-
-		@Override
-		protected String doInBackground(Void... arg0) {
-			try {
-				if (trackingData.getImage() == null)
-					Log.d("null", "image in tracking data");
-				new RestClient().sendTrackingInfo(trackingData);
-			} catch (ClientProtocolException e) {
-				Log.d("REST failed", e.getMessage());
-				Toast.makeText(getBaseContext(), "Network disconnected",
-						Toast.LENGTH_LONG).show();
-			} catch (IOException e) {
-				Log.d("REST failed", e.getMessage());
-				Toast.makeText(getBaseContext(), "Network disconnected",
-						Toast.LENGTH_LONG).show();
-			}
-			return null;
-		}
-
-		@Override
-		protected void onPostExecute(String result) {
-			super.onPostExecute(result);
 		}
 	}
 
