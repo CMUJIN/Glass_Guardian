@@ -182,6 +182,9 @@ public class SensorActivity extends Activity implements SensorEventListener {
 		recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
 		recorder.setOutputFile(fileName);
 		recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+		recorder.setAudioChannels(2);
+		recorder.setAudioEncodingBitRate(128);
+		recorder.setAudioSamplingRate(44100);
 
 		try {
 			recorder.prepare();
@@ -274,7 +277,7 @@ public class SensorActivity extends Activity implements SensorEventListener {
 
 		@Override
 		protected void onPreExecute() {
-			startRecording();
+			//startRecording();
 			Location location = getUserLocation();
 			if (location != null) {
 				trackingData.setLatitude(location.getLatitude());
@@ -284,7 +287,6 @@ public class SensorActivity extends Activity implements SensorEventListener {
 				Log.d("wait", "5s");
 				Thread.sleep(5000);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -292,9 +294,8 @@ public class SensorActivity extends Activity implements SensorEventListener {
 		@Override
 		protected String doInBackground(Void... arg0) {
 			Log.d("backgroud", "record task");
-			stopRecording();
+			//stopRecording();
 			takePicture();
-			
 			return null;
 		}
 
@@ -304,12 +305,8 @@ public class SensorActivity extends Activity implements SensorEventListener {
 			try {
 				Thread.sleep(5000);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			//new TrackingDataUploadTask().execute();
-			
-
 			Intent returnIntent = new Intent();
 			returnIntent.putExtra("status", "suc");
 			setResult(RESULT_OK, returnIntent);
@@ -318,10 +315,7 @@ public class SensorActivity extends Activity implements SensorEventListener {
 	}
 
 	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		// TODO Auto-generated method stub
-
-	}
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
 }
 
@@ -337,10 +331,8 @@ class MyRunnable implements Runnable {
 		try {
 			new RestClient().sendTrackingInfo(trackingData);
 		} catch (ClientProtocolException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
@@ -349,26 +341,14 @@ class MyRunnable implements Runnable {
 class LocationUpdateListener implements LocationListener {
 
 	@Override
-	public void onLocationChanged(Location arg0) {
-		// TODO Auto-generated method stub
-
-	}
+	public void onLocationChanged(Location arg0) {}
 
 	@Override
-	public void onProviderDisabled(String arg0) {
-		// TODO Auto-generated method stub
-
-	}
+	public void onProviderDisabled(String arg0) {}
 
 	@Override
-	public void onProviderEnabled(String arg0) {
-		// TODO Auto-generated method stub
-
-	}
+	public void onProviderEnabled(String arg0) {}
 
 	@Override
-	public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
-		// TODO Auto-generated method stub
-
-	}
+	public void onStatusChanged(String arg0, int arg1, Bundle arg2) {}
 }
