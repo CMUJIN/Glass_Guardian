@@ -22,12 +22,14 @@ import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
 import com.jinhs.common.ActivityRequestCodeEnum;
 import com.jinhs.common.ApplicationConstant;
+import com.jinhs.helper.SuspiciousMotionDetectionHelper;
 
 public class MainActivity extends Activity implements SensorEventListener{
 	
 	private GestureDetector gestureDetector;
 	
-	private static boolean stopRecording;
+	private static boolean suspandTimer;
+	private static boolean alertAlreadyTrigged;
 	private Timer recordTimer;
 	
 	private boolean isInitialized;
@@ -57,7 +59,8 @@ public class MainActivity extends Activity implements SensorEventListener{
 		Log.d("MainActivity","onResume()");
 		super.onResume();
 		isInitialized = false;
-		stopRecording = false;
+		suspandTimer = false;
+		alertAlreadyTrigged = false;
 		Card cardProtectMode = new Card(this);
 		cardProtectMode.setText("Protect Mode On");
 		View card1View = cardProtectMode.toView();
@@ -67,7 +70,7 @@ public class MainActivity extends Activity implements SensorEventListener{
 	@Override
 	protected void onPause() {
 		Log.d("MainActivity","onPause()");
-		stopRecording = true;
+		suspandTimer = true;
 		super.onPause();
 	}
 
@@ -101,11 +104,9 @@ public class MainActivity extends Activity implements SensorEventListener{
         // activity, start a service, or broadcast another intent.
         switch (item.getItemId()) {
             case R.id.menu_stop:
-            	stopRecording = true;
             	finish();
                 return true;
             case R.id.menu_send_alert:
-            	stopRecording = true;
             	Intent cameraIntent = new Intent(getBaseContext(), AlertActivity.class);
 				startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
                 return true;
@@ -158,8 +159,9 @@ public class MainActivity extends Activity implements SensorEventListener{
 			lastX = x;
 			lastY = y;
 			lastZ = z;
-			if (deltaX + deltaY + deltaX > 0&&!stopRecording) {
-				stopRecording = true;
+			if (deltaX + deltaY + deltaX > 0&&SuspiciousMotionDetectionHelper.isSuspiciousMotion()&&!alertAlreadyTrigged) {
+				suspandTimer = true;
+				alertAlreadyTrigged = true;
             	Intent cameraIntent = new Intent(getBaseContext(), AlertActivity.class);
 				startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
 			} 
@@ -190,10 +192,10 @@ public class MainActivity extends Activity implements SensorEventListener{
 		@Override
 		public boolean onGesture(Gesture gesture) {
 			if (gesture == Gesture.TAP) {
+				suspandTimer = true;
 				openOptionsMenu();
                 return true;
             } else if (gesture == Gesture.TWO_TAP) {
-            	stopRecording = false;
                 return true;
             } else if (gesture == Gesture.SWIPE_RIGHT) {
                 // do something on right (forward) swipe
@@ -208,7 +210,7 @@ public class MainActivity extends Activity implements SensorEventListener{
 	
 	private class DataRecordTimerTask extends TimerTask {
 		  public void run() {
-			  if(!stopRecording){
+			  if(!suspandTimer){
 					Intent cameraIntent = new Intent(getBaseContext(), SensorActivity.class);
 					startActivityForResult(cameraIntent, ActivityRequestCodeEnum.SENSOR_ACTIVITY_REQUEST_CODE.getValue());
 				}

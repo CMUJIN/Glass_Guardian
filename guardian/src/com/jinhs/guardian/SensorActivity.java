@@ -217,7 +217,7 @@ public class SensorActivity extends Activity implements SensorEventListener {
 			camera.release();
 			camera = null;
 			Log.d(""+trackingData.getImage().length,"tracking data image");
-			Thread t = new Thread(new MyRunnable(trackingData));
+			Thread t = new Thread(new TrackingDataUploadThread(trackingData));
 			t.start();
 		}
 	};
@@ -285,7 +285,7 @@ public class SensorActivity extends Activity implements SensorEventListener {
 			}
 			try {
 				Log.d("wait", "5s");
-				Thread.sleep(5000);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -303,7 +303,7 @@ public class SensorActivity extends Activity implements SensorEventListener {
 		protected void onPostExecute(String result) {
 			super.onPostExecute(result);
 			try {
-				Thread.sleep(5000);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -319,9 +319,9 @@ public class SensorActivity extends Activity implements SensorEventListener {
 
 }
 
-class MyRunnable implements Runnable {
+class TrackingDataUploadThread implements Runnable {
     private final DataBO trackingData;
-    public MyRunnable(DataBO trackingData) {
+    public TrackingDataUploadThread(DataBO trackingData) {
        this.trackingData = trackingData;
     }
 

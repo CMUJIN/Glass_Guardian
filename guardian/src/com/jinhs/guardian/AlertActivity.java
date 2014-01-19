@@ -1,6 +1,5 @@
 package com.jinhs.guardian;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.http.client.ClientProtocolException;
@@ -14,68 +13,84 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.widget.TextView;
+import android.view.View;
 import android.widget.Toast;
 
+import com.google.android.glass.app.Card;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
 import com.jinhs.helper.AccountInfoHelper;
-import com.jinhs.helper.FileReadingHelper;
 import com.jinhs.rest.RestClient;
 
 public class AlertActivity extends Activity {
 	private GestureDetector mGestureDetector;
-	
-	private TextView textViewTimer;
-	
+	private static boolean isAlertCancelled;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_alert);
-		
-		mGestureDetector = createGestureDetector(this);
-		textViewTimer = (TextView)findViewById(R.id.textView_timer);
 	}
-	
+
 	@Override
 	protected void onResume() {
-		Log.d("onResume()","start");
+		Log.d("onResume()", "start");
 		super.onResume();
-		
-		new CountDownTimer(10*1000, 1000) {
+		isAlertCancelled = false;
 
-		     public void onTick(long millisUntilFinished) {
-		    	 textViewTimer.setText("" + millisUntilFinished / 1000);
-		     }
+		mGestureDetector = createGestureDetector(this);
+		new CountDownTimer(10 * 1000, 1000) {
 
-		     public void onFinish() {
-		    	 Toast.makeText(getBaseContext(), "alert is sent", Toast.LENGTH_LONG).show();
-		    	 finish();
-		     }
-		  }.start();
+			public void onTick(long millisUntilFinished) {
+				int number = (int) (millisUntilFinished / 1000);
+				Card cardProtectMode = new Card(getBaseContext());
+				cardProtectMode.setText(R.string.alert_instruction);
+				cardProtectMode.setImageLayout(Card.ImageLayout.LEFT);
+				switch(number){
+					case 1: cardProtectMode.addImage(R.drawable.timer_1);break;
+					case 2: cardProtectMode.addImage(R.drawable.timer_2);break;
+					case 3: cardProtectMode.addImage(R.drawable.timer_3);break;
+					case 4: cardProtectMode.addImage(R.drawable.timer_4);break;
+					case 5: cardProtectMode.addImage(R.drawable.timer_5);break;
+					case 6: cardProtectMode.addImage(R.drawable.timer_6);break;
+					case 7: cardProtectMode.addImage(R.drawable.timer_7);break;
+					case 8: cardProtectMode.addImage(R.drawable.timer_8);break;
+					case 9: cardProtectMode.addImage(R.drawable.timer_9);break;
+					case 10: cardProtectMode.addImage(R.drawable.timer_10);break;
+					default:break;
+				}
+				View card1View = cardProtectMode.toView();
+				setContentView(card1View);
+			}
+
+			public void onFinish() {
+				if(!isAlertCancelled)
+					new AlertSendingTask().execute();
+				
+			}
+		}.start();
 	}
 
 	@Override
 	protected void onPause() {
-		Log.d("onPause()","start");
+		Log.d("onPause()", "start");
 		super.onPause();
 	}
 
 	@Override
 	protected void onStop() {
-		Log.d("onStop()","start");
+		Log.d("onStop()", "start");
 		super.onStop();
 	}
 
 	@Override
 	protected void onDestroy() {
-		Log.d("onDestroy()","start");
+		Log.d("onDestroy()", "start");
 		super.onDestroy();
 	}
-	
+
 	@Override
 	public void onBackPressed() {
-		Log.d("onBackPressed()","start");
+		Log.d("onBackPressed()", "start");
 	}
 
 	@Override
@@ -84,53 +99,53 @@ public class AlertActivity extends Activity {
 		getMenuInflater().inflate(R.menu.alert, menu);
 		return true;
 	}
-	
+
 	@Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection. Menu items typically start another
-        // activity, start a service, or broadcast another intent.
-        switch (item.getItemId()) {
-            case R.id.menu_cancel_alert:
-            	Toast.makeText(getBaseContext(), "alert is canceled", Toast.LENGTH_LONG).show();
-            	finish();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-	
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle item selection. Menu items typically start another
+		// activity, start a service, or broadcast another intent.
+		switch (item.getItemId()) {
+		case R.id.menu_cancel_alert:
+			isAlertCancelled = true;
+			Toast.makeText(getBaseContext(), "alert is canceled",
+					Toast.LENGTH_LONG).show();
+			finish();
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+
 	@Override
 	public boolean onGenericMotionEvent(MotionEvent event) {
 		if (mGestureDetector != null) {
-            return mGestureDetector.onMotionEvent(event);
-        }
-        return false;
+			return mGestureDetector.onMotionEvent(event);
+		}
+		return false;
 	}
-	
+
 	private GestureDetector createGestureDetector(Context context) {
 		GestureDetector gestureDetector = new GestureDetector(context);
 		gestureDetector.setBaseListener(new gestureListener());
 		return gestureDetector;
 	}
-	
-	private class gestureListener implements GestureDetector.BaseListener{
+
+	private class gestureListener implements GestureDetector.BaseListener {
 
 		@Override
 		public boolean onGesture(Gesture gesture) {
 			if (gesture == Gesture.TAP) {
 				openOptionsMenu();
-                return true;
-            } else if (gesture == Gesture.TWO_TAP) {
-                return true;
-            } else if (gesture == Gesture.SWIPE_RIGHT) {
-            	new AlertSendingTask().execute();
-            	finish();
-                return true;
-            } else if (gesture == Gesture.SWIPE_LEFT) {
-            	new AlertSendingTask().execute();
-                finish();
-                return true;
-            }
+				return true;
+			} else if (gesture == Gesture.TWO_TAP) {
+				return true;
+			} else if (gesture == Gesture.SWIPE_RIGHT) {
+				new AlertSendingTask().execute();
+				finish();
+				return true;
+			} else if (gesture == Gesture.SWIPE_LEFT) {
+				return true;
+			}
 			return false;
 		}
 	}
@@ -139,20 +154,22 @@ public class AlertActivity extends Activity {
 
 		@Override
 		protected void onPreExecute() {
-			
+
 		}
 
 		@Override
 		protected String doInBackground(Void... arg0) {
-			Log.d("alert","sent");
+			Log.d("alert", "sent");
 			try {
-				new RestClient().sendAlert(AccountInfoHelper.getEmail(getBaseContext()));
+				new RestClient().sendAlert(AccountInfoHelper
+						.getEmail(getBaseContext()));
 			} catch (ClientProtocolException e) {
-				Log.d("ClientProtocolException","alert send e:"+e.getMessage());
-				//return "Alert send failed, check your network connection";
+				Log.d("ClientProtocolException",
+						"alert send e:" + e.getMessage());
+				// return "Alert send failed, check your network connection";
 			} catch (IOException e) {
-				Log.d("IOException","alert send e:"+e.getMessage());
-				//return "Alert send failed, check your network connection";
+				Log.d("IOException", "alert send e:" + e.getMessage());
+				// return "Alert send failed, check your network connection";
 			}
 			return "alert is sent";
 		}
