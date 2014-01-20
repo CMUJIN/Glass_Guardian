@@ -15,7 +15,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.View;
+import android.view.WindowManager;
 
 import com.google.android.glass.app.Card;
 import com.google.android.glass.touchpad.Gesture;
@@ -51,7 +51,7 @@ public class MainActivity extends Activity implements SensorEventListener{
 				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		sensorManager.registerListener(this, accelerometer,
 				SensorManager.SENSOR_DELAY_NORMAL);
-		
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 	}
 	
 	@Override
@@ -63,8 +63,7 @@ public class MainActivity extends Activity implements SensorEventListener{
 		alertAlreadyTrigged = false;
 		Card cardProtectMode = new Card(this);
 		cardProtectMode.setText("Protect Mode On");
-		View card1View = cardProtectMode.toView();
-		setContentView(card1View);
+		setContentView(cardProtectMode.toView());
 	}
 
 	@Override
@@ -107,7 +106,7 @@ public class MainActivity extends Activity implements SensorEventListener{
             	finish();
                 return true;
             case R.id.menu_send_alert:
-            	Intent cameraIntent = new Intent(getBaseContext(), AlertActivity.class);
+            	Intent cameraIntent = new Intent(getBaseContext(), AlertCountDownActivity.class);
 				startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
                 return true;
             default:
@@ -159,11 +158,14 @@ public class MainActivity extends Activity implements SensorEventListener{
 			lastX = x;
 			lastY = y;
 			lastZ = z;
-			if (deltaX + deltaY + deltaX > 0&&SuspiciousMotionDetectionHelper.isSuspiciousMotion()&&!alertAlreadyTrigged) {
-				suspandTimer = true;
-				alertAlreadyTrigged = true;
-            	Intent cameraIntent = new Intent(getBaseContext(), AlertActivity.class);
-				startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
+			if (deltaX + deltaY + deltaX > 0&&!suspandTimer) {
+				Log.d("acc", "sharp motion");
+				if(SuspiciousMotionDetectionHelper.isSuspiciousMotion()&&!alertAlreadyTrigged){
+					suspandTimer = true;
+					alertAlreadyTrigged = true;
+	            	Intent cameraIntent = new Intent(getBaseContext(), AlertCountDownActivity.class);
+					startActivityForResult(cameraIntent, ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE.getValue());
+				}
 			} 
 		}
 

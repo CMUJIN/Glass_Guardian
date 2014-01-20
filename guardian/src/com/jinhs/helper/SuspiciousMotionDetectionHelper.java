@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import android.util.Log;
+
 public class SuspiciousMotionDetectionHelper {
 	private static final int TIME_LIST_LENGTH = 3;
 	private static final int ALERT_TIME_INTERVAL = 1000;
@@ -18,8 +20,10 @@ public class SuspiciousMotionDetectionHelper {
 		else if(timeList.size()>TIME_LIST_LENGTH)
 			timeList = timeList.subList(timeList.size()-TIME_LIST_LENGTH, timeList.size());
 		for(int i=0;i<timeList.size()-1;i++){
-			if(timeList.get(i+1)-timeList.get(i)>ALERT_TIME_INTERVAL)
+			if(timeList.get(i+1)-timeList.get(i)>ALERT_TIME_INTERVAL){
+				Log.d("detector", "continuous motion");
 				return false;
+			}
 		}
 		return true;
 	}

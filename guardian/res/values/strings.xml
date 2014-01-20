@@ -9,8 +9,12 @@
     <string name="menu_stop">Stop Guardian</string>
     <string name="menu_send_alert">Send Alert!</string>
     <string name="title_activity_alert">AlertActivity</string>
-    <string name="alert_instruction">CLICK to cancel, SWIPE to send immediately</string>
+    <string name="alert_instruction">CLICK to cancel\nSWIPE to send immediately</string>
     <string name="alert_head">Alert is sending in 10 seconds</string>
     <string name="menu_cancel_alert">Cancel Alert!</string>
+    <string name="title_activity_alert_handler">AlertHandlerActivity</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="alert_send">Alert is sent</string>
+    <string name="alert_cancel">Alert is canceled</string>
 
 </resources>

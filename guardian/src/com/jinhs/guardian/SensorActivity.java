@@ -28,6 +28,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.WindowManager;
 
 import com.jinhs.common.ActivityRequestCodeEnum;
 import com.jinhs.common.ApplicationConstant;
@@ -63,6 +64,8 @@ public class SensorActivity extends Activity implements SensorEventListener {
 				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		sensorManager.registerListener(this, accelerometer,
 				SensorManager.SENSOR_DELAY_NORMAL);
+		
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 	}
 
 	@Override
@@ -138,7 +141,7 @@ public class SensorActivity extends Activity implements SensorEventListener {
 			if (deltaX + deltaY + deltaX > 0 && !stopRecording) {
 				stopRecording = true;
 				Intent cameraIntent = new Intent(getBaseContext(),
-						AlertActivity.class);
+						AlertCountDownActivity.class);
 				startActivityForResult(cameraIntent,
 						ActivityRequestCodeEnum.ALERT_ACTIVITY_REQUEST_CODE
 								.getValue());
@@ -174,37 +177,7 @@ public class SensorActivity extends Activity implements SensorEventListener {
 			camera = null;
 		}
 	}
-
-	private void startRecording() {
-		Log.d("audio", "start recording");
-		recorder = new MediaRecorder();
-		recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-		recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-		recorder.setOutputFile(fileName);
-		recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-		recorder.setAudioChannels(2);
-		recorder.setAudioEncodingBitRate(128);
-		recorder.setAudioSamplingRate(44100);
-
-		try {
-			recorder.prepare();
-		} catch (IOException e) {
-			Log.e("audio", "prepare() failed");
-		}
-
-		recorder.start();
-	}
-
-	private void stopRecording() {
-		if(recorder!=null){
-			recorder.stop();
-			recorder.release();
-			recorder = null;
-		}
-		Log.d("audio", "stop recording");
-		Log.d("audio file path", "" + fileName);
-	}
-
+	
 	PictureCallback jpgCallback = new PictureCallback() {
 
 		@Override
@@ -277,7 +250,6 @@ public class SensorActivity extends Activity implements SensorEventListener {
 
 		@Override
 		protected void onPreExecute() {
-			//startRecording();
 			Location location = getUserLocation();
 			if (location != null) {
 				trackingData.setLatitude(location.getLatitude());
@@ -294,7 +266,6 @@ public class SensorActivity extends Activity implements SensorEventListener {
 		@Override
 		protected String doInBackground(Void... arg0) {
 			Log.d("backgroud", "record task");
-			//stopRecording();
 			takePicture();
 			return null;
 		}
